@@ -47,21 +47,30 @@ namespace NovelpiaDownloader
         readonly Novelpia novelpia;
         private FontMapping font_mapping;
 
-        private void DownloadButton_Click(object sender, EventArgs e)
+        private async void DownloadButton_Click(object sender, EventArgs e)
         {
             bool saveAsEpub = EpubButton.Checked;
-            SaveFileDialog sfd = new SaveFileDialog
+            string folderLoc = SaveLocation.Text;
+            string fileName;
+            char[] delimiters = { ',', ';', ' ' };
+            string[] novelNoList = NovelNoText.Text.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string novelNo in novelNoList)
             {
-                Filter = saveAsEpub ? "|*.epub" : "|*.txt"
-            };
-            if (sfd.ShowDialog() == DialogResult.OK)
-            {
-                Download(NovelNoText.Text, saveAsEpub, sfd.FileName);
+                if (saveAsEpub)
+                {
+                    fileName = Path.Combine(folderLoc, novelNo + ".epub");
+
+                }
+                else
+                {
+                    fileName = Path.Combine(folderLoc, novelNo + ".txt");
+                }
+                await Download(novelNo, saveAsEpub, fileName);
             }
-            sfd.Dispose();
         }
 
-        void Download(string novelNo, bool saveAsEpub, string path)
+        private async Task Download(string novelNo, bool saveAsEpub, string path)
         {
             ConsoleBox.AppendText("다운로드 시작!\r\n");
             string directory = Path.Combine(Path.GetDirectoryName(path), novelNo);
@@ -70,7 +79,7 @@ namespace NovelpiaDownloader
             float interval = (float)IntervalNum.Value;
             int from = FromCheck.Checked ? (int)FromNum.Value - 1 : 0;
             int to = ToCheck.Checked ? (int)ToNum.Value : int.MaxValue;
-            Task.Run(() =>
+            await Task.Run(() =>
             {
                 int chapterNo = 0;
                 int page = 0;
@@ -181,37 +190,46 @@ namespace NovelpiaDownloader
                             var serializer = new JavaScriptSerializer();
                             using (var reader = new StreamReader(s.Item2, Encoding.UTF8))
                             {
-                                var texts = serializer.Deserialize<Dictionary<string, object>>(reader.ReadToEnd());
-                                foreach (var text in (ArrayList)texts["s"])
+                                try
                                 {
-                                    var textDict = (Dictionary<string, object>)text;
-                                    string textStr = (string)textDict["text"];
-                                    match = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
-                                    if (match.Success)
+                                    var texts = serializer.Deserialize<Dictionary<string, object>>(reader.ReadToEnd());
+                                    foreach (var text in (ArrayList)texts["s"])
                                     {
-                                        if (!textStr.Contains("cover-wrapper"))
+                                        var textDict = (Dictionary<string, object>)text;
+                                        string textStr = (string)textDict["text"];
+                                        match = Regex.Match(textStr, @"<img.+?src=\""(.+?)\"".+?>");
+                                        if (match.Success)
                                         {
-                                            url = match.Groups[1].Value;
+                                            if (!textStr.Contains("cover-wrapper"))
+                                            {
+                                                url = match.Groups[1].Value;
 
-                                            string image_url = url;
-                                            int image_no = imageNo;
-                                            threads.Add(new Thread(() => DownloadImage(image_url,
-                                                Path.Combine(directory, $"OEBPS/Images/{image_no}.jpg"), "삽화")));
+                                                string image_url = url;
+                                                int image_no = imageNo;
+                                                threads.Add(new Thread(() => DownloadImage(image_url,
+                                                    Path.Combine(directory, $"OEBPS/Images/{image_no}.jpg"), "삽화")));
 
-                                            textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>",
-                                                $"<img alt=\"{imageNo}\" src=\"../Images/{imageNo}.jpg\" width=\"100%\"/>");
-                                            file.Write($"<p>{textStr}</p>\n");
-                                            imageNo++;
+                                                textStr = Regex.Replace(textStr, @"<img.+?src=\"".+?\"".+?>",
+                                                    $"<img alt=\"{imageNo}\" src=\"../Images/{imageNo}.jpg\" width=\"100%\"/>");
+                                                file.Write($"<p>{textStr}</p>\n");
+                                                imageNo++;
+                                            }
+                                            continue;
                                         }
-                                        continue;
+                                        textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
+                                        textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
+                                        if (textStr == "")
+                                            continue;
+                                        if (font_mapping != null)
+                                            textStr = font_mapping.DecodeText(textStr);
+                                        file.Write($"<p>{textStr}</p>\n");
                                     }
-                                    textStr = Regex.Replace(textStr, @"<p style='height: 0px; width: 0px;.+?>.*?</p>", "");
-                                    textStr = Regex.Replace(textStr, @"</?[^>]+>|\n", "");
-                                    if (textStr == "")
-                                        continue;
-                                    if (font_mapping != null)
-                                        textStr = font_mapping.DecodeText(textStr);
-                                    file.Write($"<p>{textStr}</p>\n");
+                                }
+                                catch (Exception ex)
+                                {
+                                    // Log the error if needed, then skip to next chapter
+                                    // Console.WriteLine($"Error processing {s.Item2}: {ex.Message}");
+                                    return; // Exit this iteration, continue with next chapter
                                 }
                             }
                             file.Write("</body>\n</html>\n");
@@ -421,6 +439,16 @@ namespace NovelpiaDownloader
         {
             if (e.KeyChar == '\r')
                 font_mapping = new FontMapping(FontBox.Text);
+        }
+
+        private void ChangeSaveLoc_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog sfd = new FolderBrowserDialog();
+            if (sfd.ShowDialog() == DialogResult.OK)
+            {
+                SaveLocation.Text = sfd.SelectedPath;
+            }
+            sfd.Dispose();
         }
     }
 }
