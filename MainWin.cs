@@ -50,7 +50,20 @@ namespace NovelpiaDownloader
         private async void DownloadButton_Click(object sender, EventArgs e)
         {
             bool saveAsEpub = EpubButton.Checked;
+
+            if (SaveLocation.Text == "")
+            {
+                ConsoleBox.Text += "저장 위치를 ​​입력해 주세요!\r\n";
+                return;
+            }
             string folderLoc = SaveLocation.Text;
+
+            if (NovelNoText.Text == "")
+            {
+                ConsoleBox.Text += "소설 번호를 입력해 주세요!\r\n";
+                return;
+            }
+
             string fileName;
             char[] delimiters = { ',', ';', ' ' };
             string[] novelNoList = NovelNoText.Text.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
@@ -450,5 +463,6 @@ namespace NovelpiaDownloader
             }
             sfd.Dispose();
         }
+
     }
 }

@@ -179,7 +179,6 @@
             this.DownloadGroup.TabIndex = 1;
             this.DownloadGroup.TabStop = false;
             this.DownloadGroup.Text = "다운로드";
-            //this.DownloadGroup.Enter += new System.EventHandler(this.DownloadGroup_Enter);
             // 
             // ChangeSaveLoc
             // 
@@ -204,9 +203,10 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(11, 132);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(74, 20);
+            this.label1.Size = new System.Drawing.Size(69, 20);
             this.label1.TabIndex = 17;
-            this.label1.Text = "위치 저장";
+            this.label1.Text = "저장위치";
+            //this.label1.Click += new System.EventHandler(this.label1_Click);
             // 
             // ToLabel
             // 
