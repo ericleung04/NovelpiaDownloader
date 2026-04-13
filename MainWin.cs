@@ -30,6 +30,8 @@ namespace NovelpiaDownloader
                     IntervalNum.Value = config_dict["interval_num"];
                 if (config_dict.ContainsKey("mapping_path"))
                     font_mapping = new FontMapping(FontBox.Text = config_dict["mapping_path"]);
+                if (config_dict.ContainsKey("save_path"))
+                    font_mapping = new FontMapping(SaveLocation.Text = config_dict["save_path"]);
                 if (config_dict.ContainsKey("email") && config_dict.ContainsKey("wd"))
                     if (novelpia.Login(EmailText.Text = config_dict["email"], PasswordText.Text = config_dict["wd"]))
                     {
@@ -420,7 +422,8 @@ namespace NovelpiaDownloader
                 { "email", EmailText.Text },
                 { "wd", PasswordText.Text },
                 { "loginkey", LoginkeyText.Text },
-                { "mapping_path", FontBox.Text }
+                { "mapping_path", FontBox.Text },
+                { "save_path", SaveLocation.Text },
             };
             using (StreamWriter sw = new StreamWriter("config.json"))
             {
